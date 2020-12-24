@@ -1,49 +1,57 @@
 pragma solidity ^0.5.0;
 
-contract PostContract {
-    string public name;
-    uint public postCount = 0; //keep count of total posts
-    mapping(uint => Post) public posts; //mapped
+contract MirToken { //token meta
+    string  public name = "Mir Token";
+    string  public symbol = "MIR";
+    string  public standard = "MIR Token v1.0";
+    uint256 public totalSupply; //total supply in existence
 
-    struct Post {
-        uint id; //count
-        string hash; //content id
-        uint tipAmount; //tipamt till now
-        address payable author; //to address
-    }
-
-    event PostCreated(
-        uint id,
-        string hash,
-        uint tipAmount,
-        address payable author
+    event Transfer(
+        address indexed _from,
+        address indexed _to,
+        uint256 _value
     );
 
-    event PostTipped(
-        uint id,
-        string hash,
-        uint tipAmount,
-        address payable author
+    event Approval(
+        address indexed _owner,
+        address indexed _spender,
+        uint256 _value
     );
 
-    constructor() public {
-        name = "Signed by Mir";
+    mapping(address => uint256) public balanceOf; //balance of each account using the mapping function
+    mapping(address => mapping(address => uint256)) public allowance;
+
+    constructor(uint256 _initialSupply) public {
+        balanceOf[msg.sender] = _initialSupply;
+        totalSupply = _initialSupply;
     }
 
-    function createPost(string memory _hash) public {
-        require(bytes(_hash).length > 0); 
-        postCount ++; 
-        posts[postCount] = Post(postCount, _hash, 0, msg.sender);
-        emit PostCreated(postCount, _hash, 0, msg.sender);
+    function transfer(address _to, uint256 _value) public returns (bool success) {
+        require(balanceOf[msg.sender] >= _value);
+
+        balanceOf[msg.sender] -= _value;
+        balanceOf[_to] += _value;
+
+        emit Transfer(msg.sender, _to, _value);
+
+        return true;
     }
 
-    function tipPost(uint _id) public payable {
-        require(_id > 0 && _id <= postCount);
-        Post memory _post = posts[_id];
-        address payable _author = _post.author;
-        address(_author).transfer(msg.value);
-        _post.tipAmount = _post.tipAmount + msg.value;
-        posts[_id] = _post;
-        emit PostTipped(postCount, _post.hash, _post.tipAmount, _author);
+    function approve(address _spender, uint256 _value) public returns (bool success) {
+        allowance[msg.sender][_spender] = _value;
+        emit Approval(msg.sender, _spender, _value);
+        return true;
+    }
+
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+        require(_value <= balanceOf[_from]);
+        require(_value <= allowance[_from][msg.sender]);
+
+        balanceOf[_from] -= _value;
+        balanceOf[_to] += _value;
+
+        allowance[_from][msg.sender] -= _value;
+        emit Transfer(_from, _to, _value);
+        return true;
     }
 }
